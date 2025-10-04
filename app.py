@@ -13,7 +13,7 @@ st.title("📈 Nifty Stock Analyzer with SMA 50 & SMA 200")
 @st.cache_data
 def load_data():
     # Change this path if needed
-    csv_path = "DataSets/Nifty/Stocks_2025.csv"
+    csv_path = "Stocks_2025.csv"
 
     if not os.path.exists(csv_path):
         st.error(f"CSV file not found at: {csv_path}")
