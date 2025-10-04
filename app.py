@@ -1,48 +1,83 @@
-import pandas as pd
 import streamlit as st
-import seaborn as sb
+import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
+import os
 
-# Title
-st.title("📈 Stock Price Viewer with SMA (50 & 200)")
+# Page configuration
+st.set_page_config(page_title="Nifty Stock Analyzer", layout="wide")
 
-# Load and preprocess data
+st.title("📈 Nifty Stock Analyzer with SMA 50 & SMA 200")
+
+# Function to load data with path safety
 @st.cache_data
 def load_data():
-    df = pd.read_csv("Stocks_2025.csv")
-    df = df.drop('Unnamed: 0', axis=1)
-    df["SMA_50"] = df["Close"].rolling(window=50, min_periods=1).mean()
-    df["SMA_200"] = df["Close"].rolling(window=200, min_periods=1).mean()
-    df["Date"] = pd.to_datetime(df["Date"])
-    df["Stock"] = df["Stock"].replace(" ", " ", regex=True)
+    # Change this path if needed
+    csv_path = "DataSets/Nifty/Stocks_2025.csv"
+
+    if not os.path.exists(csv_path):
+        st.error(f"CSV file not found at: {csv_path}")
+        st.stop()
+
+    df = pd.read_csv(csv_path)
+
+    # Drop unnamed column if exists
+    if 'Unnamed: 0' in df.columns:
+        df = df.drop('Unnamed: 0', axis=1)
+
+    # Convert Date column to datetime
+    df['Date'] = pd.to_datetime(df['Date'])
+
+    # Clean Stock names (optional)
+    df['Stock'] = df['Stock'].astype(str).str.strip()
+
+    # Calculate SMAs
+    df['SMA_50'] = df['Close'].rolling(window=50, min_periods=1).mean()
+    df['SMA_200'] = df['Close'].rolling(window=200, min_periods=1).mean()
+
     return df
 
+# Load data
 df = load_data()
+
+# Sidebar for user input
+st.sidebar.header("📊 Filter Options")
 
 # Category selection
 categories = df['Category'].dropna().unique()
-selected_category = st.selectbox("Select Category", sorted(categories))
+selected_category = st.sidebar.selectbox("Select Category", sorted(categories))
+
+# Filter based on category
+filtered_df = df[df['Category'] == selected_category]
 
 # Stock selection
-filtered_by_category = df[df["Category"] == selected_category]
-stocks = filtered_by_category['Stock'].dropna().unique()
-selected_stock = st.selectbox("Select Stock", sorted(stocks))
+stocks = filtered_df['Stock'].dropna().unique()
+selected_stock = st.sidebar.selectbox("Select Stock", sorted(stocks))
 
-# Filter final data
-final_df = filtered_by_category[filtered_by_category["Stock"] == selected_stock]
+# Final filtered data
+stock_df = filtered_df[filtered_df['Stock'] == selected_stock]
 
 # Plotting
-fig, ax = plt.subplots(figsize=(12, 6))
+st.subheader(f"📌 {selected_stock} Price with SMA 50 & SMA 200")
 
-sb.lineplot(data=final_df, x="Date", y="Close", label="Close Price", ax=ax)
-sb.lineplot(data=final_df, x="Date", y="SMA_50", label="SMA 50", ax=ax)
-sb.lineplot(data=final_df, x="Date", y="SMA_200", label="SMA 200", ax=ax)
+fig, ax = plt.subplots(figsize=(14, 6))
 
+sns.lineplot(data=stock_df, x='Date', y='Close', label='Close Price', ax=ax)
+sns.lineplot(data=stock_df, x='Date', y='SMA_50', label='SMA 50', ax=ax)
+sns.lineplot(data=stock_df, x='Date', y='SMA_200', label='SMA 200', ax=ax)
+
+ax.set_title(f"{selected_stock} - Price and Moving Averages", fontsize=16)
+ax.set_xlabel("Date")
+ax.set_ylabel("Price")
 plt.xticks(rotation=45)
-plt.title(f"{selected_stock} Price with SMA")
-plt.xlabel("Date")
-plt.ylabel("Price")
 plt.legend()
 plt.grid(True)
 
 st.pyplot(fig)
+
+# Optional: Show raw data
+with st.expander("📄 Show Raw Data"):
+    st.dataframe(stock_df.reset_index(drop=True))
+
+
+
