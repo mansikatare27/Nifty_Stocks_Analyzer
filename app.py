@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sb
-import numpy as np
+import seaborn as sns
+import os  # ✅ This is the missing import that caused your error
 
 # Page settings
 st.set_page_config(page_title="📈 Nifty Stock Analyzer", layout="wide")
@@ -13,7 +13,7 @@ st.title("📈 Nifty Stock Analyzer with SMA 50 & SMA 200")
 # Load CSV safely
 @st.cache_data
 def load_data():
-    csv_path = "Stocks_2025.csv"  # Change this if needed
+    csv_path = "Stocks_2025.csv"  # Change if needed
 
     if not os.path.exists(csv_path):
         st.error(f"❌ File not found at path: {csv_path}")
@@ -80,3 +80,4 @@ st.pyplot(fig)
 # Show raw data
 with st.expander("📄 Show Raw Data Table"):
     st.dataframe(filtered_df.reset_index(drop=True))
+
