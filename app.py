@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os  # ✅ This is the missing import that caused your error
+import os
 
 # Page settings
 st.set_page_config(page_title="📈 Nifty Stock Analyzer", layout="wide")
@@ -10,10 +10,10 @@ st.set_page_config(page_title="📈 Nifty Stock Analyzer", layout="wide")
 # App title
 st.title("📈 Nifty Stock Analyzer with SMA 50 & SMA 200")
 
-# Load CSV safely
+# Load CSV safely with caching
 @st.cache_data
 def load_data():
-    csv_path = "Stocks_2025.csv"  # Change if needed
+    csv_path = "Stocks_2025.csv"  # Change if your CSV path differs
 
     if not os.path.exists(csv_path):
         st.error(f"❌ File not found at path: {csv_path}")
@@ -21,45 +21,47 @@ def load_data():
 
     df = pd.read_csv(csv_path)
 
-    # Drop index column if exists
+    # Drop index column if it exists
     if 'Unnamed: 0' in df.columns:
         df = df.drop('Unnamed: 0', axis=1)
 
-    # Convert Date column to datetime
-    df['Date'] = pd.to_datetime(df['Date'])
+    # Safely convert Date column to datetime, coerce errors to NaT
+    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 
-    # Clean up Stock names
+    # Drop rows where Date conversion failed
+    df = df.dropna(subset=['Date'])
+
+    # Clean Stock names (strip whitespace)
     df['Stock'] = df['Stock'].astype(str).str.strip()
 
-    # Calculate Simple Moving Averages
+    # Calculate SMAs
     df['SMA_50'] = df['Close'].rolling(window=50, min_periods=1).mean()
     df['SMA_200'] = df['Close'].rolling(window=200, min_periods=1).mean()
 
     return df
 
-# Load the data
+# Load data
 df = load_data()
 
-# Sidebar filters
+# Sidebar filter options
 st.sidebar.header("🔍 Filter Options")
 
-# Category selection
+# Category select box
 categories = df['Category'].dropna().unique()
 selected_category = st.sidebar.selectbox("Select Category", sorted(categories))
 
-# Filter stocks by selected category
+# Filter stocks by category
 stocks_in_category = df[df['Category'] == selected_category]['Stock'].unique()
 selected_stock = st.sidebar.selectbox("Select Stock", sorted(stocks_in_category))
 
-# Final filter by category and stock
+# Filter data for chosen stock and category
 filtered_df = df[(df['Category'] == selected_category) & (df['Stock'] == selected_stock)]
 
-# Show warning if no data
 if filtered_df.empty:
     st.warning("No data found for the selected category and stock.")
     st.stop()
 
-# Plot the chart
+# Plotting
 st.subheader(f"📊 {selected_stock} - Close Price with SMA 50 & SMA 200")
 
 fig, ax = plt.subplots(figsize=(14, 6))
@@ -77,7 +79,8 @@ plt.grid(True)
 
 st.pyplot(fig)
 
-# Show raw data
+# Expandable raw data table
 with st.expander("📄 Show Raw Data Table"):
     st.dataframe(filtered_df.reset_index(drop=True))
 
+   
