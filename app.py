@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
-import os
+import seaborn as sb
+import numpy as np
 
 # Page configuration
 st.set_page_config(page_title="Nifty Stock Analyzer", layout="wide")
